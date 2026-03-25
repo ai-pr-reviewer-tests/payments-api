@@ -1,0 +1,13 @@
+# Payment processing — requires payments team review
+src/payments/ @payments-team
+src/db/migrations/ @payments-team @dba-team
+
+# Auth changes — requires security team review
+src/auth/ @security-team
+
+# API surface — requires API review
+src/api/ @api-team @payments-team
+
+# Infrastructure
+.github/ @platform-team
+src/cache/ @platform-team
