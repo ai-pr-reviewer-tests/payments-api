@@ -18,14 +18,15 @@ TTL_CONFIG = {
 }
 
 
-def _build_key(prefix: str, identifier: str) -> str:
+def _format_cache_key(prefix: str, identifier: str) -> str:
+    """Format a cache key from prefix and identifier."""
     return f"cache:{prefix}:{identifier}"
 
 
 def cached(prefix: str, identifier: str) -> Any | None:
     """Retrieve a value from cache. Returns None on miss."""
     r = get_redis()
-    key = _build_key(prefix, identifier)
+    key = _format_cache_key(prefix, identifier)
     raw = r.get(key)
     if raw is None:
         return None
@@ -40,7 +41,7 @@ def cached(prefix: str, identifier: str) -> Any | None:
 def set_cached(prefix: str, identifier: str, value: Any) -> None:
     """Store a value in the cache with the appropriate TTL."""
     r = get_redis()
-    key = _build_key(prefix, identifier)
+    key = _format_cache_key(prefix, identifier)
     ttl = TTL_CONFIG.get(prefix, DEFAULT_TTL)
     r.setex(key, ttl, json.dumps(value))
 
@@ -48,5 +49,5 @@ def set_cached(prefix: str, identifier: str, value: Any) -> None:
 def invalidate(prefix: str, identifier: str) -> None:
     """Remove a specific entry from the cache."""
     r = get_redis()
-    key = _build_key(prefix, identifier)
+    key = _format_cache_key(prefix, identifier)
     r.delete(key)

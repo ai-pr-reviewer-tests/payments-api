@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify, g
 from marshmallow import ValidationError
 
 from src.auth.jwt_handler import require_auth
-from src.api.validation import ChargeSchema, RefundSchema, validate_request
+from src.api.validation import ChargeSchema, RefundSchema, validate_request_data
 from src.payments.processor import process_charge, process_refund
 from src.payments.gateway import PaymentError
 from src.db.queries import get_payment
@@ -17,7 +17,7 @@ payments_bp = Blueprint("payments", __name__)
 def create_charge():
     """Create a new payment charge."""
     try:
-        data = validate_request(ChargeSchema, request.get_json(silent=True) or {})
+        data = validate_request_data(ChargeSchema, request.get_json(silent=True) or {})
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.messages}), 400
 
@@ -54,7 +54,7 @@ def get_payment_details(payment_id: int):
 def refund_payment(payment_id: int):
     """Refund a payment."""
     try:
-        data = validate_request(RefundSchema, request.get_json(silent=True) or {})
+        data = validate_request_data(RefundSchema, request.get_json(silent=True) or {})
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.messages}), 400
 

@@ -19,7 +19,18 @@ class RefundSchema(Schema):
     amount_cents = fields.Int(validate=validate.Range(min=1), load_default=None)
 
 
-def validate_request(schema_cls, data: dict) -> dict:
-    """Validate request data against a schema. Raises ValidationError on failure."""
+def validate_request_data(schema_cls, data: dict) -> dict:
+    """Validate request data against a marshmallow schema.
+
+    Args:
+        schema_cls: The marshmallow Schema class to validate against.
+        data: The raw request data dictionary.
+
+    Returns:
+        The validated and deserialized data.
+
+    Raises:
+        ValidationError: If validation fails.
+    """
     schema = schema_cls()
     return schema.load(data)
