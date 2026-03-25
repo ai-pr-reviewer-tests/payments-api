@@ -67,6 +67,16 @@ def get_payment(payment_id: int) -> dict | None:
         return cur.fetchone()
 
 
+def update_user_role(user_id: int, role: str) -> None:
+    """Update the role of a user."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE users SET role = %s WHERE id = %s",
+            (role, user_id),
+        )
+
+
 def list_user_payments(user_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
     """List payments for a given user, newest first."""
     conn = get_db_connection()
