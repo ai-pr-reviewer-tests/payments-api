@@ -1,6 +1,6 @@
 # Payments API
 
-A Flask-based REST API for processing payments, managing user accounts, and handling subscriptions.
+A Flask-based REST API for processing payments, managing user accounts, and handling subscription billing.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ pip install -r requirements.txt
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
 | `JWT_SECRET_KEY` | Secret for signing JWT tokens |
-| `STRIPE_SECRET_KEY` | Stripe API secret key |
+| `STRIPE_SECRET_KEY` | Stripe API secret key (use `sk_test_` prefix in development) |
 
 ## Running
 
