@@ -1,41 +1,40 @@
-"""Payment gateway abstraction over Stripe."""
+"""Payment gateway abstraction supporting multiple providers."""
 
 import os
 import logging
+from abc import ABC, abstractmethod
 
 import stripe
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+
+class PaymentError(Exception):
+    """Raised when a payment operation fails."""
+    pass
 
 
-class PaymentGateway:
-    """Thin wrapper around the Stripe API for charge and refund operations."""
+class BaseProvider(ABC):
+    """Abstract base class for payment providers."""
 
-    @staticmethod
-    def create_charge(amount_cents: int, currency: str, source_token: str,
-                      description: str = "") -> dict:
-        """Create a charge through Stripe.
+    @abstractmethod
+    def create_charge(self, amount_cents: int, currency: str,
+                      source_token: str, description: str = "") -> dict:
+        ...
 
-        Args:
-            amount_cents: Amount in the smallest currency unit (e.g. cents).
-            currency: Three-letter ISO currency code.
-            source_token: Payment source token from the client.
-            description: Optional charge description.
+    @abstractmethod
+    def refund_charge(self, charge_id: str, amount_cents: int | None = None) -> dict:
+        ...
 
-        Returns:
-            dict with charge id, status, and amount.
 
-        Raises:
-            PaymentError: If the charge fails.
-        """
-        if amount_cents <= 0:
-            raise PaymentError("Charge amount must be positive")
+class StripeProvider(BaseProvider):
+    """Stripe payment provider."""
 
-        if currency not in ("usd", "eur", "gbp"):
-            raise PaymentError(f"Unsupported currency: {currency}")
+    def __init__(self):
+        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
+    def create_charge(self, amount_cents: int, currency: str,
+                      source_token: str, description: str = "") -> dict:
         try:
             charge = stripe.Charge.create(
                 amount=amount_cents,
@@ -43,7 +42,7 @@ class PaymentGateway:
                 source=source_token,
                 description=description,
             )
-            logger.info("Charge %s created for %d %s", charge.id, amount_cents, currency)
+            logger.info("Stripe charge %s for %d %s", charge.id, amount_cents, currency)
             return {
                 "charge_id": charge.id,
                 "status": charge.status,
@@ -57,17 +56,7 @@ class PaymentGateway:
             logger.error("Stripe error: %s", str(e))
             raise PaymentError("Payment processing failed") from e
 
-    @staticmethod
-    def refund_charge(charge_id: str, amount_cents: int | None = None) -> dict:
-        """Refund a charge, fully or partially.
-
-        Args:
-            charge_id: The Stripe charge ID.
-            amount_cents: If provided, refund this amount; otherwise full refund.
-
-        Returns:
-            dict with refund id and status.
-        """
+    def refund_charge(self, charge_id: str, amount_cents: int | None = None) -> dict:
         try:
             params = {"charge": charge_id}
             if amount_cents is not None:
@@ -76,13 +65,51 @@ class PaymentGateway:
                 params["amount"] = amount_cents
 
             refund = stripe.Refund.create(**params)
-            logger.info("Refund %s created for charge %s", refund.id, charge_id)
+            logger.info("Stripe refund %s for charge %s", refund.id, charge_id)
             return {"refund_id": refund.id, "status": refund.status}
         except stripe.error.StripeError as e:
             logger.error("Refund failed for %s: %s", charge_id, str(e))
             raise PaymentError("Refund processing failed") from e
 
 
-class PaymentError(Exception):
-    """Raised when a payment operation fails."""
-    pass
+# Provider registry
+PROVIDERS = {
+    "stripe": StripeProvider,
+}
+
+# BUG: default provider is "braintree" which doesn't exist in PROVIDERS
+# In production, PAYMENT_PROVIDER env var is not always set, so this
+# falls through to a KeyError at runtime
+DEFAULT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "braintree")
+
+
+class PaymentGateway:
+    """Multi-provider payment gateway."""
+
+    def __init__(self, provider_name: str | None = None):
+        name = provider_name or DEFAULT_PROVIDER
+        provider_cls = PROVIDERS.get(name)
+        if provider_cls is None:
+            # Falls through to default — which also may not exist
+            provider_cls = PROVIDERS.get(DEFAULT_PROVIDER)
+        self._provider = provider_cls()
+
+    @staticmethod
+    def create_charge(amount_cents: int, currency: str, source_token: str,
+                      description: str = "") -> dict:
+        """Create a charge using the configured provider."""
+        if amount_cents <= 0:
+            raise PaymentError("Charge amount must be positive")
+        if currency not in ("usd", "eur", "gbp"):
+            raise PaymentError(f"Unsupported currency: {currency}")
+
+        gateway = PaymentGateway()
+        return gateway._provider.create_charge(
+            amount_cents, currency, source_token, description
+        )
+
+    @staticmethod
+    def refund_charge(charge_id: str, amount_cents: int | None = None) -> dict:
+        """Refund a charge using the configured provider."""
+        gateway = PaymentGateway()
+        return gateway._provider.refund_charge(charge_id, amount_cents)
