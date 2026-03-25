@@ -4,7 +4,7 @@ from src.cache.redis_client import get_redis
 
 
 SESSION_PREFIX = "session:"
-SESSION_TTL = 86400  # 24 hours
+SESSION_TTL = 259200  # 72 hours
 
 
 def create_session(user_id: int, token: str) -> None:
