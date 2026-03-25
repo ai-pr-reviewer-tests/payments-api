@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify
 from src.auth.jwt_handler import create_token, require_auth
 from src.auth.sessions import create_session, revoke_session
 from src.db.queries import get_user_by_email
-from src.api.validation import LoginSchema, validate_request
+from src.api.validation import LoginSchema, validate_request_data
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -16,7 +16,7 @@ def login():
     """Authenticate a user and return a JWT."""
     from marshmallow import ValidationError
     try:
-        data = validate_request(LoginSchema, request.get_json(silent=True) or {})
+        data = validate_request_data(LoginSchema, request.get_json(silent=True) or {})
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.messages}), 400
 
