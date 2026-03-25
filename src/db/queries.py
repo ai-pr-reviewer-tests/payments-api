@@ -67,6 +67,28 @@ def get_payment(payment_id: int) -> dict | None:
         return cur.fetchone()
 
 
+def get_discount_code(code: str) -> dict | None:
+    """Look up a discount code."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, code, type, value, uses_remaining "
+            "FROM discount_codes WHERE code = %s AND active = true",
+            (code,),
+        )
+        return cur.fetchone()
+
+
+def decrement_discount_uses(code_id: int) -> None:
+    """Decrement remaining uses for a discount code."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE discount_codes SET uses_remaining = uses_remaining - 1 WHERE id = %s",
+            (code_id,),
+        )
+
+
 def list_user_payments(user_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
     """List payments for a given user, newest first."""
     conn = get_db_connection()

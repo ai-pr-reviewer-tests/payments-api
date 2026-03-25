@@ -7,7 +7,8 @@ from src.auth.jwt_handler import require_auth
 from src.api.validation import ChargeSchema, RefundSchema, validate_request
 from src.payments.processor import process_charge, process_refund
 from src.payments.gateway import PaymentError
-from src.db.queries import get_payment
+from src.db.queries import get_payment, decrement_discount_uses
+from src.payments.discounts import validate_discount_code, apply_discount
 
 payments_bp = Blueprint("payments", __name__)
 
@@ -21,10 +22,22 @@ def create_charge():
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.messages}), 400
 
+    amount_cents = data["amount_cents"]
+
+    # Apply discount code if provided
+    raw_body = request.get_json(silent=True) or {}
+    discount_code = raw_body.get("discount_code")
+    if discount_code:
+        discount = validate_discount_code(discount_code)
+        if discount is None:
+            return jsonify({"error": "Invalid or expired discount code"}), 400
+        amount_cents = apply_discount(amount_cents, discount)
+        decrement_discount_uses(discount["id"])
+
     try:
         result = process_charge(
             user_id=g.current_user_id,
-            amount_cents=data["amount_cents"],
+            amount_cents=amount_cents,
             currency=data["currency"],
             source_token=data["source_token"],
             description=data["description"],
