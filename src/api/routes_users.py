@@ -20,4 +20,5 @@ def get_current_user():
         "id": user["id"],
         "email": user["email"],
         "role": user["role"],
+        "user_tier": user["user_tier"],
     }), 200

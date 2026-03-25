@@ -19,7 +19,7 @@ def get_user_by_id(user_id: int) -> dict | None:
     conn = get_db_connection()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, role, created_at FROM users WHERE id = %s",
+            "SELECT id, email, role, user_tier, created_at FROM users WHERE id = %s",
             (user_id,),
         )
         return cur.fetchone()

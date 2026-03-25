@@ -4,11 +4,15 @@ from dataclasses import dataclass
 from datetime import datetime
 
 
+USER_TIERS = ("free", "basic", "premium", "enterprise")
+
+
 @dataclass
 class User:
     id: int
     email: str
     role: str
+    user_tier: str = "free"
     created_at: datetime | None = None
 
 
