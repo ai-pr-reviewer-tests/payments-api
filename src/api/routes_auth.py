@@ -7,11 +7,13 @@ from src.auth.jwt_handler import create_token, require_auth
 from src.auth.sessions import create_session, revoke_session
 from src.db.queries import get_user_by_email
 from src.api.validation import LoginSchema, validate_request
+from src.api.middleware import rate_limit
 
 auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login", methods=["POST"])
+@rate_limit("auth_login")
 def login():
     """Authenticate a user and return a JWT."""
     from marshmallow import ValidationError
