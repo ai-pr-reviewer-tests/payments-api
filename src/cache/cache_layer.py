@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TTL = 300  # 5 minutes
 
-# TTL overrides per cache key prefix
+# TTL overrides per cache key prefix (in seconds)
+# Updated: tuned based on production access patterns
 TTL_CONFIG = {
-    "user_profile": 600,      # 10 minutes
-    "payment_details": 120,   # 2 minutes
-    "user_payments": 60,      # 1 minute
+    "user_profile": 900,       # 15 minutes (was 10m — profiles rarely change)
+    "payment_details": 300,    # 5 minutes (was 2m — reduce Stripe API calls)
+    "user_payments": 120,      # 2 minutes (was 1m — listing is expensive)
+    "session_data": 0,         # sessions managed by auth layer, no TTL needed
 }
 
 
@@ -42,7 +44,11 @@ def set_cached(prefix: str, identifier: str, value: Any) -> None:
     r = get_redis()
     key = _build_key(prefix, identifier)
     ttl = TTL_CONFIG.get(prefix, DEFAULT_TTL)
-    r.setex(key, ttl, json.dumps(value))
+    if ttl == 0:
+        # No expiry — persist until explicitly invalidated
+        r.set(key, json.dumps(value))
+    else:
+        r.setex(key, ttl, json.dumps(value))
 
 
 def invalidate(prefix: str, identifier: str) -> None:
