@@ -39,11 +39,8 @@ def list_users():
             params.append(role_filter)
 
         if email_filter:
-            # BUG: SQL injection — email_filter is concatenated directly
-            # instead of using parameterized query
             query += f" AND email LIKE '%{email_filter}%'"
 
-        # BUG: sort_field is user-controlled and injected directly into SQL
         if sort_field in ("email", "created_at", "role"):
             query += f" ORDER BY {sort_field} DESC"
         else:
@@ -55,7 +52,6 @@ def list_users():
         cur.execute(query, params)
         users = cur.fetchall()
 
-    # BUG: Exposes internal database IDs directly
     return jsonify({
         "users": [dict(u) for u in users],
         "count": len(users),
