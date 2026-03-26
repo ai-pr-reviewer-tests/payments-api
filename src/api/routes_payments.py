@@ -8,12 +8,14 @@ from src.api.validation import ChargeSchema, RefundSchema, validate_request
 from src.payments.processor import process_charge, process_refund
 from src.payments.gateway import PaymentError
 from src.db.queries import get_payment
+from src.idempotency.middleware import require_idempotency_key
 
 payments_bp = Blueprint("payments", __name__)
 
 
 @payments_bp.route("/charge", methods=["POST"])
 @require_auth
+@require_idempotency_key
 def create_charge():
     """Create a new payment charge."""
     try:
