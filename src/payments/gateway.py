@@ -77,9 +77,6 @@ PROVIDERS = {
     "stripe": StripeProvider,
 }
 
-# BUG: default provider is "braintree" which doesn't exist in PROVIDERS
-# In production, PAYMENT_PROVIDER env var is not always set, so this
-# falls through to a KeyError at runtime
 DEFAULT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "braintree")
 
 
