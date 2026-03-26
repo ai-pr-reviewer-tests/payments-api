@@ -36,10 +36,6 @@ def check_rate_limit(identifier: str, endpoint: str = "default") -> tuple[bool, 
     r = get_redis()
     now = time.time()
 
-    # BUG: Race condition — read-modify-write is not atomic
-    # Two concurrent requests can both read the same count,
-    # both decide they're under the limit, and both increment,
-    # allowing more requests through than the limit allows
     current_count = r.get(key)
 
     if current_count is None:
@@ -61,8 +57,6 @@ def check_rate_limit(identifier: str, endpoint: str = "default") -> tuple[bool, 
             "reset": int(now + ttl),
         }
 
-    # BUG: Non-atomic increment — another request could have incremented
-    # between our GET and this SET, losing that increment
     r.set(key, count + 1, keepttl=True)
 
     return True, {
