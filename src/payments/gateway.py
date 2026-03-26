@@ -52,10 +52,29 @@ class PaymentGateway:
             }
         except stripe.error.CardError as e:
             logger.warning("Card declined: %s", e.user_message)
-            raise PaymentError(f"Card declined: {e.user_message}") from e
+            raise PaymentError(
+                f"Card declined: {e.user_message} "
+                f"(processor: {e.code}, request: {e.request_id}, "
+                f"decline_code: {getattr(e, 'decline_code', 'N/A')})"
+            ) from e
+        except stripe.error.InvalidRequestError as e:
+            logger.error("Invalid request to Stripe: %s", str(e))
+            raise PaymentError(
+                f"Payment configuration error: {str(e)} "
+                f"(request: {e.request_id})"
+            ) from e
+        except stripe.error.AuthenticationError as e:
+            logger.error("Stripe authentication failed: %s", str(e))
+            raise PaymentError(
+                f"Payment service authentication failed: {str(e)} "
+                f"(key: {stripe.api_key[:8]}...)"
+            ) from e
         except stripe.error.StripeError as e:
             logger.error("Stripe error: %s", str(e))
-            raise PaymentError("Payment processing failed") from e
+            raise PaymentError(
+                f"Payment processing failed: {str(e)} "
+                f"(request: {getattr(e, 'request_id', 'unknown')})"
+            ) from e
 
     @staticmethod
     def refund_charge(charge_id: str, amount_cents: int | None = None) -> dict:
@@ -78,9 +97,18 @@ class PaymentGateway:
             refund = stripe.Refund.create(**params)
             logger.info("Refund %s created for charge %s", refund.id, charge_id)
             return {"refund_id": refund.id, "status": refund.status}
+        except stripe.error.InvalidRequestError as e:
+            logger.error("Refund request error for %s: %s", charge_id, str(e))
+            raise PaymentError(
+                f"Refund failed for charge {charge_id}: {str(e)} "
+                f"(request: {e.request_id})"
+            ) from e
         except stripe.error.StripeError as e:
             logger.error("Refund failed for %s: %s", charge_id, str(e))
-            raise PaymentError("Refund processing failed") from e
+            raise PaymentError(
+                f"Refund processing failed: {str(e)} "
+                f"(request: {getattr(e, 'request_id', 'unknown')})"
+            ) from e
 
 
 class PaymentError(Exception):
