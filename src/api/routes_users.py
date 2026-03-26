@@ -26,8 +26,6 @@ def get_current_user():
 
 @users_bp.route("/<int:user_id>/role", methods=["PUT"])
 @require_auth
-# BUG: Missing @require_role(Role.ADMIN) — any authenticated user can
-# escalate any other user (or themselves) to admin
 def update_role(user_id: int):
     """Update a user's role. Requires admin privileges."""
     data = request.get_json(silent=True) or {}
