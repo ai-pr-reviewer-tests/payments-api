@@ -8,6 +8,7 @@ from flask import Flask
 from src.api.routes_auth import auth_bp
 from src.api.routes_payments import payments_bp
 from src.api.routes_users import users_bp
+from src.api.routes_webhooks import webhooks_bp
 
 
 def create_app() -> Flask:
@@ -22,6 +23,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(payments_bp, url_prefix="/api/v1/payments")
     app.register_blueprint(users_bp, url_prefix="/api/v1/users")
+    app.register_blueprint(webhooks_bp, url_prefix="/api/v1/webhooks")
 
     @app.route("/health")
     def health():
