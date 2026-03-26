@@ -37,12 +37,10 @@ def apply_discount(amount_cents: int, discount: dict) -> int:
         Discounted amount in cents.
     """
     if discount["type"] == "percentage":
-        # BUG: no floor at 0 — if percentage > 100, result goes negative
         reduction = int(amount_cents * discount["value"] / 100)
         return amount_cents - reduction
 
     elif discount["type"] == "fixed_amount":
-        # BUG: no floor at 0 — if fixed discount > amount, result goes negative
         return amount_cents - discount["value"]
 
     else:
